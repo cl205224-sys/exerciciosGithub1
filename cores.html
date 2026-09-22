@@ -1,0 +1,909 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="h-full bg-slate-900 text-slate-100">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Coloris - Buscador e Seletor de Cores</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    boxShadow: {
+                        'glow': '0 0 25px -5px rgba(0, 0, 0, 0.5)',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+        
+        /* Custom styling for standard native color input overlay */
+        input[type="color"]::-webkit-color-swatch-wrapper {
+            padding: 0;
+        }
+        input[type="color"]::-webkit-color-swatch {
+            border: none;
+            border-radius: 0.5rem;
+        }
+    </style>
+</head>
+<body class="min-h-full flex flex-col font-sans antialiased selection:bg-indigo-500 selection:text-white">
+
+    <!-- Top Header Navigation -->
+    <header class="sticky top-0 z-40 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 px-4 lg:px-8 py-3.5">
+        <div class="max-w-7xl mx-auto flex items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-pink-500 via-purple-500 to-indigo-500 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+                    <i class="fa-solid font-bold text-white text-xl fa-palette"></i>
+                </div>
+                <div>
+                    <h1 class="font-extrabold text-xl tracking-tight text-white flex items-center gap-2">
+                        Coloris <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-400 border border-indigo-500/30">Pro</span>
+                    </h1>
+                    <p class="text-xs text-slate-400 hidden sm:block">Buscador, Seletor e Analisador de Cores</p>
+                </div>
+            </div>
+
+            <!-- Header Quick Actions -->
+            <div class="flex items-center gap-2">
+                <button onclick="getRandomColor()" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs sm:text-sm font-medium rounded-lg border border-slate-700 transition-all flex items-center gap-2 active:scale-95">
+                    <i class="fa-solid fa-dice text-indigo-400"></i>
+                    <span class="hidden sm:inline">Cor Aleatória</span>
+                </button>
+                <a href="#favorites-section" class="px-3 py-2 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 text-xs sm:text-sm font-medium rounded-lg transition-all flex items-center gap-2">
+                    <i class="fa-solid fa-heart text-pink-400"></i>
+                    <span>Favoritos</span>
+                    <span id="fav-count-badge" class="ml-1 px-1.5 py-0.2 bg-pink-500 text-white rounded-full text-[10px] font-bold">0</span>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="flex-1 max-w-7xl w-full mx-auto p-4 md:p-6 lg:p-8 space-y-8">
+
+        <!-- Top Section: Color Picker & Specs Grid -->
+        <section class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+            <!-- Left Column: Primary Color Visualizer & Inputs -->
+            <div class="lg:col-span-5 bg-slate-800/80 border border-slate-700/80 rounded-2xl p-5 md:p-6 backdrop-blur flex flex-col justify-between shadow-xl">
+                <div>
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-sm font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
+                            <i class="fa-solid fa-eye text-indigo-400"></i> Cor Selecionada
+                        </h2>
+                        <button id="favorite-btn" onclick="toggleFavoriteCurrent()" class="text-slate-400 hover:text-pink-500 transition-colors text-lg p-1.5 rounded-lg hover:bg-slate-700/50" title="Salvar nos Favoritos">
+                            <i class="fa-regular fa-heart" id="favorite-icon"></i>
+                        </button>
+                    </div>
+
+                    <!-- Large Color Display Box -->
+                    <div id="main-preview-box" class="w-full h-44 sm:h-52 rounded-xl shadow-inner border border-white/10 transition-all duration-300 relative flex flex-col justify-end p-4 group overflow-hidden">
+                        <div class="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors"></div>
+                        
+                        <!-- Floating native color picker overlay button -->
+                        <div class="relative z-10 flex items-center justify-between bg-slate-900/80 backdrop-blur-md p-2.5 rounded-lg border border-slate-700/80">
+                            <div class="flex items-center gap-3">
+                                <label for="native-color-picker" class="cursor-pointer flex items-center gap-2 text-xs font-semibold text-slate-200 hover:text-white">
+                                    <div id="picker-swatch-indicator" class="w-7 h-7 rounded-md border border-white/20 shadow-sm"></div>
+                                    <span>Abrir Seletor Native</span>
+                                </label>
+                                <input type="color" id="native-color-picker" value="#3B82F6" class="sr-only">
+                            </div>
+                            <span id="preview-hex-title" class="font-mono font-bold text-sm text-white tracking-widest">#3B82F6</span>
+                        </div>
+                    </div>
+
+                    <!-- Color Value Form Inputs -->
+                    <div class="mt-6 space-y-3">
+                        <!-- HEX Input -->
+                        <div class="flex items-center justify-between bg-slate-900/60 p-2.5 rounded-xl border border-slate-700/60 focus-within:border-indigo-500 transition-all">
+                            <span class="text-xs font-bold text-slate-400 w-12 px-2">HEX</span>
+                            <input type="text" id="input-hex" value="#3B82F6" class="bg-transparent font-mono text-sm text-white font-semibold focus:outline-none w-full px-2" uppercase>
+                            <button onclick="copyFieldValue('input-hex', 'HEX')" class="p-2 text-slate-400 hover:text-indigo-400 hover:bg-slate-800 rounded-lg transition-all" title="Copiar HEX">
+                                <i class="fa-regular fa-copy"></i>
+                            </button>
+                        </div>
+
+                        <!-- RGB Input -->
+                        <div class="flex items-center justify-between bg-slate-900/60 p-2.5 rounded-xl border border-slate-700/60 focus-within:border-indigo-500 transition-all">
+                            <span class="text-xs font-bold text-slate-400 w-12 px-2">RGB</span>
+                            <input type="text" id="input-rgb" value="rgb(59, 130, 246)" class="bg-transparent font-mono text-sm text-white font-semibold focus:outline-none w-full px-2">
+                            <button onclick="copyFieldValue('input-rgb', 'RGB')" class="p-2 text-slate-400 hover:text-indigo-400 hover:bg-slate-800 rounded-lg transition-all" title="Copiar RGB">
+                                <i class="fa-regular fa-copy"></i>
+                            </button>
+                        </div>
+
+                        <!-- HSL Input -->
+                        <div class="flex items-center justify-between bg-slate-900/60 p-2.5 rounded-xl border border-slate-700/60 focus-within:border-indigo-500 transition-all">
+                            <span class="text-xs font-bold text-slate-400 w-12 px-2">HSL</span>
+                            <input type="text" id="input-hsl" value="hsl(217, 91%, 60%)" class="bg-transparent font-mono text-sm text-white font-semibold focus:outline-none w-full px-2">
+                            <button onclick="copyFieldValue('input-hsl', 'HSL')" class="p-2 text-slate-400 hover:text-indigo-400 hover:bg-slate-800 rounded-lg transition-all" title="Copiar HSL">
+                                <i class="fa-regular fa-copy"></i>
+                            </button>
+                        </div>
+
+                        <!-- CMYK Input -->
+                        <div class="flex items-center justify-between bg-slate-900/60 p-2.5 rounded-xl border border-slate-700/60 focus-within:border-indigo-500 transition-all">
+                            <span class="text-xs font-bold text-slate-400 w-12 px-2">CMYK</span>
+                            <input type="text" id="input-cmyk" value="cmyk(76%, 47%, 0%, 4%)" class="bg-transparent font-mono text-sm text-white font-semibold focus:outline-none w-full px-2">
+                            <button onclick="copyFieldValue('input-cmyk', 'CMYK')" class="p-2 text-slate-400 hover:text-indigo-400 hover:bg-slate-800 rounded-lg transition-all" title="Copiar CMYK">
+                                <i class="fa-regular fa-copy"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: Contrast Analysis & Color Harmonies -->
+            <div class="lg:col-span-7 space-y-6">
+
+                <!-- Accessibility & WCAG Contrast Card -->
+                <div class="bg-slate-800/80 border border-slate-700/80 rounded-2xl p-5 md:p-6 backdrop-blur shadow-xl">
+                    <h2 class="text-sm font-bold uppercase tracking-wider text-slate-400 mb-4 flex items-center gap-2">
+                        <i class="fa-solid fa-universal-access text-indigo-400"></i> Acessibilidade & Contraste WCAG
+                    </h2>
+
+                    <!-- Text Contrast Live Preview Boxes -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <!-- Black Text on Selected Color -->
+                        <div id="contrast-black-box" class="p-4 rounded-xl border border-white/10 flex flex-col justify-between h-32 transition-all">
+                            <span class="text-xs font-semibold opacity-75">Texto Preto (#000000)</span>
+                            <p class="font-bold text-base line-clamp-2">Exemplo de Leitura Rápida</p>
+                            <div class="flex items-center justify-between pt-2 border-t border-black/10">
+                                <span id="ratio-black" class="text-xs font-mono font-bold">4.5:1</span>
+                                <span id="badge-black" class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-black/20">AA</span>
+                            </div>
+                        </div>
+
+                        <!-- White Text on Selected Color -->
+                        <div id="contrast-white-box" class="p-4 rounded-xl border border-white/10 flex flex-col justify-between h-32 transition-all">
+                            <span class="text-xs font-semibold opacity-75">Texto Branco (#FFFFFF)</span>
+                            <p class="font-bold text-base line-clamp-2">Exemplo de Leitura Rápida</p>
+                            <div class="flex items-center justify-between pt-2 border-t border-white/20">
+                                <span id="ratio-white" class="text-xs font-mono font-bold">4.5:1</span>
+                                <span id="badge-white" class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/20">AA</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Harmonies & Shades Panel -->
+                <div class="bg-slate-800/80 border border-slate-700/80 rounded-2xl p-5 md:p-6 backdrop-blur shadow-xl space-y-6">
+                    
+                    <!-- Shades & Tints -->
+                    <div>
+                        <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 flex items-center justify-between">
+                            <span><i class="fa-solid fa-layer-group text-indigo-400 mr-1.5"></i> Escala de Tons e Sombras</span>
+                            <span class="text-[11px] font-normal text-slate-500">Clique em um tom para selecionar</span>
+                        </h3>
+                        <div id="shades-container" class="grid grid-cols-7 gap-1.5 h-14">
+                            <!-- Injected dynamically -->
+                        </div>
+                    </div>
+
+                    <!-- Harmonies Grid -->
+                    <div>
+                        <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">
+                            <i class="fa-solid fa-wand-magic-sparkles text-indigo-400 mr-1.5"></i> Harmonias de Cores
+                        </h3>
+                        
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            <!-- Complementary -->
+                            <div class="bg-slate-900/50 p-3 rounded-xl border border-slate-700/50">
+                                <span class="text-xs font-semibold text-slate-400 block mb-2">Complementar</span>
+                                <div id="harmony-complementary" class="flex gap-2"></div>
+                            </div>
+
+                            <!-- Analogous -->
+                            <div class="bg-slate-900/50 p-3 rounded-xl border border-slate-700/50">
+                                <span class="text-xs font-semibold text-slate-400 block mb-2">Análogas</span>
+                                <div id="harmony-analogous" class="flex gap-2"></div>
+                            </div>
+
+                            <!-- Triadic -->
+                            <div class="bg-slate-900/50 p-3 rounded-xl border border-slate-700/50">
+                                <span class="text-xs font-semibold text-slate-400 block mb-2">Triádicas</span>
+                                <div id="harmony-triadic" class="flex gap-2"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- Middle Section: Color Search & Catalog -->
+        <section class="bg-slate-800/80 border border-slate-700/80 rounded-2xl p-5 md:p-6 backdrop-blur shadow-xl space-y-6">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <h2 class="text-lg font-bold text-white flex items-center gap-2">
+                        <i class="fa-solid fa-book-bookmark text-indigo-400"></i> Catálogo de Cores Populares
+                    </h2>
+                    <p class="text-xs text-slate-400">Explore e pesquise por nomes em português e inglês ou códigos HEX</p>
+                </div>
+
+                <!-- Search Input Field -->
+                <div class="relative w-full md:w-80">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+                    <input type="text" id="search-catalog-input" placeholder="Buscar 'Azul', 'Emerald', 'Gold'..." class="w-full bg-slate-900/90 text-sm text-slate-100 placeholder-slate-500 pl-10 pr-4 py-2.5 rounded-xl border border-slate-700 focus:outline-none focus:border-indigo-500 transition-all">
+                </div>
+            </div>
+
+            <!-- Category Filter Pills -->
+            <div id="category-filters" class="flex flex-wrap gap-2 pt-1 border-t border-slate-700/50">
+                <button data-cat="all" class="cat-pill px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 text-white transition-all">Todos</button>
+                <button data-cat="quentes" class="cat-pill px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-900/80 text-slate-400 hover:text-white border border-slate-700 transition-all">Tons Quentes</button>
+                <button data-cat="frios" class="cat-pill px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-900/80 text-slate-400 hover:text-white border border-slate-700 transition-all">Tons Frios</button>
+                <button data-cat="neutros" class="cat-pill px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-900/80 text-slate-400 hover:text-white border border-slate-700 transition-all">Neutros</button>
+                <button data-cat="pastel" class="cat-pill px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-900/80 text-slate-400 hover:text-white border border-slate-700 transition-all">Pastel</button>
+                <button data-cat="vivos" class="cat-pill px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-900/80 text-slate-400 hover:text-white border border-slate-700 transition-all">Vivos / Neon</button>
+            </div>
+
+            <!-- Color Cards Grid -->
+            <div id="catalog-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3.5 max-h-[520px] overflow-y-auto pr-1">
+                <!-- Dynamically populated catalog items -->
+            </div>
+            
+            <div id="no-results-msg" class="hidden text-center py-12 text-slate-500 text-sm">
+                <i class="fa-solid fa-ghost text-3xl mb-2 block"></i>
+                Nenhuma cor encontrada com esse termo de busca.
+            </div>
+        </section>
+
+        <!-- Bottom Section: My Saved Palette / Favorites -->
+        <section id="favorites-section" class="bg-slate-800/80 border border-slate-700/80 rounded-2xl p-5 md:p-6 backdrop-blur shadow-xl space-y-4">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                    <h2 class="text-lg font-bold text-white flex items-center gap-2">
+                        <i class="fa-solid fa-heart text-pink-500"></i> Minha Paleta Favorita
+                    </h2>
+                    <p class="text-xs text-slate-400">Sua coleção salva de cores persistida no navegador</p>
+                </div>
+
+                <div class="flex items-center gap-2">
+                    <button onclick="copyAllFavorites()" class="px-3 py-2 bg-slate-900/80 hover:bg-slate-700 text-slate-300 text-xs font-medium rounded-lg border border-slate-700 transition-all flex items-center gap-2">
+                        <i class="fa-solid fa-copy text-indigo-400"></i>
+                        <span>Copiar Todos (HEX)</span>
+                    </button>
+                    <button onclick="clearFavorites()" class="px-3 py-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 text-xs font-medium rounded-lg border border-rose-500/20 transition-all flex items-center gap-2">
+                        <i class="fa-solid fa-trash-can"></i>
+                        <span>Limpar</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Favorites Grid Container -->
+            <div id="favorites-grid" class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3 pt-2">
+                <!-- Injected dynamically -->
+            </div>
+
+            <div id="empty-favorites-msg" class="text-center py-8 text-slate-500 text-sm border-2 border-dashed border-slate-700/60 rounded-xl">
+                <i class="fa-regular fa-bookmark text-2xl mb-1 block"></i>
+                Você ainda não salvou nenhuma cor. Clique no ícone de coração para guardar cores aqui!
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-slate-800 bg-slate-950 py-6 text-center text-xs text-slate-500">
+        <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+            <p>© 2026 Coloris - Ferramenta Gratuita de Seleção e Acessibilidade de Cores</p>
+            <p class="flex items-center gap-1">
+                <span>Criado com</span> <i class="fa-solid fa-heart text-pink-500 text-[10px]"></i> <span>para Designers e Desenvolvedores</span>
+            </p>
+        </div>
+    </footer>
+
+    <!-- Toast Notification Container -->
+    <div id="toast" class="fixed bottom-6 right-6 z-50 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none bg-slate-800 text-white border border-indigo-500/40 shadow-2xl rounded-xl px-4 py-3 flex items-center gap-3">
+        <div class="w-8 h-8 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center font-bold">
+            <i id="toast-icon" class="fa-solid fa-check"></i>
+        </div>
+        <div>
+            <p id="toast-message" class="text-xs font-bold text-slate-100">Copiado para a área de transferência!</p>
+            <p id="toast-subtext" class="text-[10px] text-slate-400">Disponível para colar</p>
+        </div>
+    </div>
+
+    <script>
+        // Extensive Categorized Color Catalog (50+ items)
+        const COLOR_CATALOG = [
+            // Tons Quentes
+            { namePt: "Vermelho Vivo", nameEn: "Crimson Red", hex: "#E11D48", category: "quentes" },
+            { namePt: "Vermelho Puro", nameEn: "Pure Red", hex: "#FF0000", category: "quentes" },
+            { namePt: "Carmim", nameEn: "Carmine", hex: "#B91C1C", category: "quentes" },
+            { namePt: "Coral Vivo", nameEn: "Living Coral", hex: "#F43F5E", category: "quentes" },
+            { namePt: "Laranja Pôr do Sol", nameEn: "Sunset Orange", hex: "#EA580C", category: "quentes" },
+            { namePt: "Laranja Vibrante", nameEn: "Vibrant Orange", hex: "#F97316", category: "quentes" },
+            { namePt: "Amarelo Ouro", nameEn: "Gold Yellow", hex: "#EAB308", category: "quentes" },
+            { namePt: "Ouro Envelhecido", nameEn: "Aged Gold", hex: "#D97706", category: "quentes" },
+            { namePt: "Terracota", nameEn: "Terracotta", hex: "#C2410C", category: "quentes" },
+            { namePt: "Magenta Clássico", nameEn: "Classic Magenta", hex: "#D946EF", category: "quentes" },
+            { namePt: "Pêssego Quente", nameEn: "Warm Peach", hex: "#FB923C", category: "quentes" },
+            { namePt: "Vinho Tinto", nameEn: "Wine Red", hex: "#881337", category: "quentes" },
+
+            // Tons Frios
+            { namePt: "Azul Royal", nameEn: "Royal Blue", hex: "#2563EB", category: "frios" },
+            { namePt: "Azul Marinho", nameEn: "Navy Blue", hex: "#0F172A", category: "frios" },
+            { namePt: "Azul Celeste", nameEn: "Sky Blue", hex: "#0284C7", category: "frios" },
+            { namePt: "Azul Cobalto", nameEn: "Cobalt Blue", hex: "#1D4ED8", category: "frios" },
+            { namePt: "Verde Esmeralda", nameEn: "Emerald Green", hex: "#10B981", category: "frios" },
+            { namePt: "Verde Floresta", nameEn: "Forest Green", hex: "#059669", category: "frios" },
+            { namePt: "Verde Teal", nameEn: "Teal Green", hex: "#0D9488", category: "frios" },
+            { namePt: "Turquesa", nameEn: "Turquoise", hex: "#06B6D4", category: "frios" },
+            { namePt: "Índigo", nameEn: "Indigo", hex: "#4338CA", category: "frios" },
+            { namePt: "Verde Menta", nameEn: "Mint Green", hex: "#14B8A6", category: "frios" },
+            { namePt: "Verde Pinheiro", nameEn: "Pine Green", hex: "#065F46", category: "frios" },
+            { namePt: "Azul Elétrico", nameEn: "Electric Blue", hex: "#3B82F6", category: "frios" },
+
+            // Neutros
+            { namePt: "Branco Neve", nameEn: "Snow White", hex: "#FFFFFF", category: "neutros" },
+            { namePt: "Branco Gelo", nameEn: "Ice White", hex: "#F8FAFC", category: "neutros" },
+            { namePt: "Cinza Claro", nameEn: "Light Gray", hex: "#F1F5F9", category: "neutros" },
+            { namePt: "Cinza Prata", nameEn: "Silver Gray", hex: "#94A3B8", category: "neutros" },
+            { namePt: "Cinza Grafite", nameEn: "Graphite Gray", hex: "#475569", category: "neutros" },
+            { namePt: "Carvão", nameEn: "Charcoal", hex: "#1E293B", category: "neutros" },
+            { namePt: "Preto Absoluto", nameEn: "Absolute Black", hex: "#000000", category: "neutros" },
+            { namePt: "Marrom Chocolate", nameEn: "Chocolate Brown", hex: "#78350F", category: "neutros" },
+            { namePt: "Marfim", nameEn: "Ivory", hex: "#FEF3C7", category: "neutros" },
+            { namePt: "Bronze", nameEn: "Bronze", hex: "#92400E", category: "neutros" },
+            { namePt: "Nude Neutro", nameEn: "Neutral Nude", hex: "#E5E7EB", category: "neutros" },
+
+            // Pastel
+            { namePt: "Rosa Pastel", nameEn: "Pastel Pink", hex: "#FECDD3", category: "pastel" },
+            { namePt: "Pêssego Suave", nameEn: "Soft Peach", hex: "#FED7AA", category: "pastel" },
+            { namePt: "Amarelo Pastel", nameEn: "Pastel Yellow", hex: "#FEF08A", category: "pastel" },
+            { namePt: "Verde Menta Soft", nameEn: "Soft Mint", hex: "#BBF7D0", category: "pastel" },
+            { namePt: "Azul Baby", nameEn: "Baby Blue", hex: "#BAE6FD", category: "pastel" },
+            { namePt: "Lavanda", nameEn: "Lavender", hex: "#DDD6FE", category: "pastel" },
+            { namePt: "Lilás Pastel", nameEn: "Pastel Lilac", hex: "#FBCFE8", category: "pastel" },
+            { namePt: "Turquesa Soft", nameEn: "Soft Turquoise", hex: "#CCFBF1", category: "pastel" },
+            { namePt: "Malva Suave", nameEn: "Soft Mauve", hex: "#E9D5FF", category: "pastel" },
+            { namePt: "Creme Pastel", nameEn: "Pastel Cream", hex: "#FFEDD5", category: "pastel" },
+
+            // Vivos / Neon
+            { namePt: "Verde Lima", nameEn: "Lime Green", hex: "#84CC16", category: "vivos" },
+            { namePt: "Ciano Neon", nameEn: "Neon Cyan", hex: "#00FFCC", category: "vivos" },
+            { namePt: "Rosa Choque", nameEn: "Hot Pink", hex: "#FF007F", category: "vivos" },
+            { namePt: "Roxo Vibrante", nameEn: "Vibrant Purple", hex: "#A855F7", category: "vivos" },
+            { namePt: "Amarelo Limão", nameEn: "Lemon Yellow", hex: "#FACC15", category: "vivos" },
+            { namePt: "Laranja Fogo", nameEn: "Fire Orange", hex: "#FF5722", category: "vivos" },
+            { namePt: "Violeta Intenso", nameEn: "Intense Violet", hex: "#7C3AED", category: "vivos" },
+            { namePt: "Verde Fluorescente", nameEn: "Neon Green", hex: "#39FF14", category: "vivos" },
+            { namePt: "Magenta Neon", nameEn: "Neon Magenta", hex: "#FF1493", category: "vivos" }
+        ];
+
+        // App State
+        let state = {
+            currentHex: '#3B82F6',
+            favorites: JSON.parse(localStorage.getItem('coloris_favorites')) || ['#3B82F6', '#10B981', '#EC4899', '#8B5CF6'],
+            activeCategory: 'all',
+            searchQuery: ''
+        };
+
+        // DOM Elements
+        const mainPreviewBox = document.getElementById('main-preview-box');
+        const pickerSwatchIndicator = document.getElementById('picker-swatch-indicator');
+        const nativeColorPicker = document.getElementById('native-color-picker');
+        const previewHexTitle = document.getElementById('preview-hex-title');
+        const favoriteBtn = document.getElementById('favorite-btn');
+        const favoriteIcon = document.getElementById('favorite-icon');
+
+        const inputHex = document.getElementById('input-hex');
+        const inputRgb = document.getElementById('input-rgb');
+        const inputHsl = document.getElementById('input-hsl');
+        const inputCmyk = document.getElementById('input-cmyk');
+
+        const catalogGrid = document.getElementById('catalog-grid');
+        const favoritesGrid = document.getElementById('favorites-grid');
+        const emptyFavoritesMsg = document.getElementById('empty-favorites-msg');
+        const favCountBadge = document.getElementById('fav-count-badge');
+        const searchInput = document.getElementById('search-catalog-input');
+        const noResultsMsg = document.getElementById('no-results-msg');
+
+        // === Color Math Helpers ===
+
+        function hexToRgb(hex) {
+            let cleanHex = hex.replace('#', '').trim();
+            if (cleanHex.length === 3) {
+                cleanHex = cleanHex.split('').map(c => c + c).join('');
+            }
+            if (cleanHex.length !== 6) return null;
+            const num = parseInt(cleanHex, 16);
+            return {
+                r: (num >> 16) & 255,
+                g: (num >> 8) & 255,
+                b: num & 255
+            };
+        }
+
+        function rgbToHex(r, g, b) {
+            const toHex = n => Math.max(0, Math.min(255, Math.round(n))).toString(16).padStart(2, '0');
+            return `#${toHex(r)}${toHex(g)}${toHex(b)}`.toUpperCase();
+        }
+
+        function rgbToHsl(r, g, b) {
+            r /= 255; g /= 255; b /= 255;
+            const max = Math.max(r, g, b), min = Math.min(r, g, b);
+            let h, s, l = (max + min) / 2;
+
+            if (max === min) {
+                h = s = 0; // achromatic
+            } else {
+                const d = max - min;
+                s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+                switch (max) {
+                    case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+                    case g: h = (b - r) / d + 2; break;
+                    case b: h = (r - g) / d + 4; break;
+                }
+                h /= 6;
+            }
+            return {
+                h: Math.round(h * 360),
+                s: Math.round(s * 100),
+                l: Math.round(l * 100)
+            };
+        }
+
+        function hslToRgb(h, s, l) {
+            h /= 360; s /= 100; l /= 100;
+            let r, g, b;
+
+            if (s === 0) {
+                r = g = b = l; // achromatic
+            } else {
+                const hue2rgb = (p, q, t) => {
+                    if (t < 0) t += 1;
+                    if (t > 1) t -= 1;
+                    if (t < 1/6) return p + (q - p) * 6 * t;
+                    if (t < 1/2) return q;
+                    if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+                    return p;
+                };
+                const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+                const p = 2 * l - q;
+                r = hue2rgb(p, q, h + 1/3);
+                g = hue2rgb(p, q, h);
+                b = hue2rgb(p, q, h - 1/3);
+            }
+            return {
+                r: Math.round(r * 255),
+                g: Math.round(g * 255),
+                b: Math.round(b * 255)
+            };
+        }
+
+        function rgbToCmyk(r, g, b) {
+            let c = 1 - (r / 255);
+            let m = 1 - (g / 255);
+            let y = 1 - (b / 255);
+            let k = Math.min(c, Math.min(m, y));
+
+            if (k === 1) {
+                return { c: 0, m: 0, y: 0, k: 100 };
+            }
+
+            c = Math.round(((c - k) / (1 - k)) * 100);
+            m = Math.round(((m - k) / (1 - k)) * 100);
+            y = Math.round(((y - k) / (1 - k)) * 100);
+            k = Math.round(k * 100);
+
+            return { c, m, y, k };
+        }
+
+        // === WCAG Luminance & Contrast ===
+
+        function getLuminance(r, g, b) {
+            const a = [r, g, b].map(v => {
+                v /= 255;
+                return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+            });
+            return a[0] * 0.2126 + a[1] * 0.7152 + a[2] * 0.0722;
+        }
+
+        function calculateContrast(rgb1, rgb2) {
+            const lum1 = getLuminance(rgb1.r, rgb1.g, rgb1.b);
+            const lum2 = getLuminance(rgb2.r, rgb2.g, rgb2.b);
+            const brightest = Math.max(lum1, lum2);
+            const darkest = Math.min(lum1, lum2);
+            return (brightest + 0.05) / (darkest + 0.05);
+        }
+
+        // === Core State Setter ===
+
+        function updateColor(hex, source = 'system') {
+            const rgb = hexToRgb(hex);
+            if (!rgb) return;
+
+            const normalizedHex = rgbToHex(rgb.r, rgb.g, rgb.b);
+            state.currentHex = normalizedHex;
+
+            // Sync visual preview
+            mainPreviewBox.style.backgroundColor = normalizedHex;
+            pickerSwatchIndicator.style.backgroundColor = normalizedHex;
+            previewHexTitle.textContent = normalizedHex;
+
+            if (source !== 'nativePicker') {
+                nativeColorPicker.value = normalizedHex;
+            }
+
+            // Sync Inputs
+            if (source !== 'hexInput') inputHex.value = normalizedHex;
+
+            const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
+            if (source !== 'rgbInput') inputRgb.value = `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`;
+            if (source !== 'hslInput') inputHSL = inputHsl.value = `hsl(${hsl.h}, ${hsl.s}%, ${hsl.l}%)`;
+
+            const cmyk = rgbToCmyk(rgb.r, rgb.g, rgb.b);
+            if (source !== 'cmykInput') inputCmyk.value = `cmyk(${cmyk.c}%, ${cmyk.m}%, ${cmyk.y}%, ${cmyk.k}%)`;
+
+            // Update Favorite Icon
+            const isFav = state.favorites.includes(normalizedHex);
+            favoriteIcon.className = isFav ? "fa-solid fa-heart text-pink-500" : "fa-regular fa-heart";
+
+            // Re-render calculations
+            updateContrast(rgb);
+            renderShades(hsl);
+            renderHarmonies(hsl);
+        }
+
+        // === Contrast Section Update ===
+
+        function updateContrast(rgb) {
+            const blackRgb = { r: 0, g: 0, b: 0 };
+            const whiteRgb = { r: 255, g: 255, b: 255 };
+
+            const ratioBlack = calculateContrast(rgb, blackRgb);
+            const ratioWhite = calculateContrast(rgb, whiteRgb);
+
+            // Update Black Box
+            const blackBox = document.getElementById('contrast-black-box');
+            blackBox.style.backgroundColor = state.currentHex;
+            blackBox.style.color = '#000000';
+            document.getElementById('ratio-black').textContent = `${ratioBlack.toFixed(2)}:1`;
+            
+            const badgeBlack = document.getElementById('badge-black');
+            badgeBlack.textContent = ratioBlack >= 7 ? 'AAA' : (ratioBlack >= 4.5 ? 'AA' : 'Falha');
+            badgeBlack.className = `text-[10px] font-bold px-2 py-0.5 rounded-full ${ratioBlack >= 4.5 ? 'bg-black/20 text-black' : 'bg-red-500 text-white'}`;
+
+            // Update White Box
+            const whiteBox = document.getElementById('contrast-white-box');
+            whiteBox.style.backgroundColor = state.currentHex;
+            whiteBox.style.color = '#FFFFFF';
+            document.getElementById('ratio-white').textContent = `${ratioWhite.toFixed(2)}:1`;
+
+            const badgeWhite = document.getElementById('badge-white');
+            badgeWhite.textContent = ratioWhite >= 7 ? 'AAA' : (ratioWhite >= 4.5 ? 'AA' : 'Falha');
+            badgeWhite.className = `text-[10px] font-bold px-2 py-0.5 rounded-full ${ratioWhite >= 4.5 ? 'bg-white/20 text-white' : 'bg-red-500 text-white'}`;
+        }
+
+        // === Render Shades & Tints ===
+
+        function renderShades(hsl) {
+            const container = document.getElementById('shades-container');
+            container.innerHTML = '';
+
+            const lightnesses = [15, 30, 45, hsl.l, 65, 80, 92];
+
+            lightnesses.forEach(l => {
+                const shadeRgb = hslToRgb(hsl.h, hsl.s, l);
+                const shadeHex = rgbToHex(shadeRgb.r, shadeRgb.g, shadeRgb.b);
+
+                const item = document.createElement('button');
+                item.className = 'w-full h-full rounded-lg border border-white/10 transition-transform hover:scale-105 focus:outline-none relative group';
+                item.style.backgroundColor = shadeHex;
+                item.title = shadeHex;
+                item.onclick = () => updateColor(shadeHex);
+
+                if (shadeHex === state.currentHex) {
+                    item.classList.add('ring-2', 'ring-indigo-400', 'ring-offset-2', 'ring-offset-slate-800');
+                }
+
+                container.appendChild(item);
+            });
+        }
+
+        // === Render Harmonies ===
+
+        function createHarmonyButton(hex) {
+            const btn = document.createElement('button');
+            btn.className = 'w-full h-10 rounded-lg border border-white/10 transition-transform hover:scale-105 flex items-center justify-center font-mono text-[10px] font-bold shadow-sm';
+            btn.style.backgroundColor = hex;
+            btn.onclick = () => updateColor(hex);
+
+            // Determine text color for contrast readability
+            const rgb = hexToRgb(hex);
+            const isLight = (rgb.r * 299 + rgb.g * 587 + rgb.b * 114) / 1000 > 128;
+            btn.style.color = isLight ? '#000000' : '#FFFFFF';
+            btn.textContent = hex;
+
+            return btn;
+        }
+
+        function renderHarmonies(hsl) {
+            // Complementary (+180 deg)
+            const compHsl = { ...hsl, h: (hsl.h + 180) % 360 };
+            const compRgb = hslToRgb(compHsl.h, compHsl.s, compHsl.l);
+            const compHex = rgbToHex(compRgb.r, compRgb.g, compRgb.b);
+
+            const compContainer = document.getElementById('harmony-complementary');
+            compContainer.innerHTML = '';
+            compContainer.appendChild(createHarmonyButton(compHex));
+
+            // Analogous (-30 deg, +30 deg)
+            const ana1Hsl = { ...hsl, h: (hsl.h - 30 + 360) % 360 };
+            const ana2Hsl = { ...hsl, h: (hsl.h + 30) % 360 };
+            const ana1Hex = rgbToHex(...Object.values(hslToRgb(ana1Hsl.h, ana1Hsl.s, ana1Hsl.l)));
+            const ana2Hex = rgbToHex(...Object.values(hslToRgb(ana2Hsl.h, ana2Hsl.s, ana2Hsl.l)));
+
+            const anaContainer = document.getElementById('harmony-analogous');
+            anaContainer.innerHTML = '';
+            anaContainer.appendChild(createHarmonyButton(ana1Hex));
+            anaContainer.appendChild(createHarmonyButton(ana2Hex));
+
+            // Triadic (+120 deg, +240 deg)
+            const tri1Hsl = { ...hsl, h: (hsl.h + 120) % 360 };
+            const tri2Hsl = { ...hsl, h: (hsl.h + 240) % 360 };
+            const tri1Hex = rgbToHex(...Object.values(hslToRgb(tri1Hsl.h, tri1Hsl.s, tri1Hsl.l)));
+            const tri2Hex = rgbToHex(...Object.values(hslToRgb(tri2Hsl.h, tri2Hsl.s, tri2Hsl.l)));
+
+            const triContainer = document.getElementById('harmony-triadic');
+            triContainer.innerHTML = '';
+            triContainer.appendChild(createHarmonyButton(tri1Hex));
+            triContainer.appendChild(createHarmonyButton(tri2Hex));
+        }
+
+        // === Catalog Search & Rendering ===
+
+        function renderCatalog() {
+            catalogGrid.innerHTML = '';
+            const query = state.searchQuery.toLowerCase().trim();
+
+            const filtered = COLOR_CATALOG.filter(item => {
+                const matchesCat = state.activeCategory === 'all' || item.category === state.activeCategory;
+                const matchesQuery = !query || 
+                    item.namePt.toLowerCase().includes(query) || 
+                    item.nameEn.toLowerCase().includes(query) || 
+                    item.hex.toLowerCase().includes(query);
+                return matchesCat && matchesQuery;
+            });
+
+            if (filtered.length === 0) {
+                noResultsMsg.classList.remove('hidden');
+            } else {
+                noResultsMsg.classList.add('hidden');
+            }
+
+            filtered.forEach(item => {
+                const card = document.createElement('div');
+                card.className = 'bg-slate-900/60 border border-slate-700/60 rounded-xl p-2.5 flex flex-col justify-between hover:border-indigo-500/80 transition-all cursor-pointer group shadow-sm';
+                
+                card.onclick = () => updateColor(item.hex);
+
+                card.innerHTML = `
+                    <div class="w-full h-20 rounded-lg shadow-inner mb-2 transition-transform group-hover:scale-[1.02]" style="background-color: ${item.hex}"></div>
+                    <div>
+                        <p class="text-xs font-bold text-white tracking-wide truncate" title="${item.namePt}">${item.namePt}</p>
+                        <p class="text-[10px] text-slate-400 truncate mb-1">${item.nameEn}</p>
+                        <span class="inline-block font-mono text-[11px] text-indigo-400 font-semibold">${item.hex}</span>
+                    </div>
+                `;
+
+                catalogGrid.appendChild(card);
+            });
+        }
+
+        // === Favorites Operations ===
+
+        function toggleFavoriteCurrent() {
+            const hex = state.currentHex;
+            const index = state.favorites.indexOf(hex);
+
+            if (index > -1) {
+                state.favorites.splice(index, 1);
+                showToast("Cor removida dos Favoritos!", "fa-heart-crack");
+            } else {
+                state.favorites.push(hex);
+                showToast("Cor adicionada aos Favoritos!", "fa-heart");
+            }
+
+            saveFavorites();
+            updateColor(state.currentHex); // re-sync heart icon
+            renderFavorites();
+        }
+
+        function removeFavorite(hex, event) {
+            event.stopPropagation();
+            state.favorites = state.favorites.filter(f => f !== hex);
+            saveFavorites();
+            updateColor(state.currentHex);
+            renderFavorites();
+            showToast("Cor removida!", "fa-trash-can");
+        }
+
+        function saveFavorites() {
+            localStorage.setItem('coloris_favorites', JSON.stringify(state.favorites));
+        }
+
+        function renderFavorites() {
+            favoritesGrid.innerHTML = '';
+            favCountBadge.textContent = state.favorites.length;
+
+            if (state.favorites.length === 0) {
+                emptyFavoritesMsg.classList.remove('hidden');
+                return;
+            } else {
+                emptyFavoritesMsg.classList.add('hidden');
+            }
+
+            state.favorites.forEach(hex => {
+                const card = document.createElement('div');
+                card.className = 'bg-slate-900/80 border border-slate-700/70 rounded-xl p-2 flex flex-col justify-between hover:border-pink-500/50 transition-all cursor-pointer group relative';
+                card.onclick = () => updateColor(hex);
+
+                card.innerHTML = `
+                    <div class="w-full h-16 rounded-lg shadow-inner mb-2" style="background-color: ${hex}"></div>
+                    <div class="flex items-center justify-between">
+                        <span class="font-mono text-xs text-white font-semibold">${hex}</span>
+                        <button onclick="removeFavorite('${hex}', event)" class="text-slate-500 hover:text-rose-400 p-1 transition-colors" title="Remover">
+                            <i class="fa-solid fa-xmark text-xs"></i>
+                        </button>
+                    </div>
+                `;
+
+                favoritesGrid.appendChild(card);
+            });
+        }
+
+        function clearFavorites() {
+            if (state.favorites.length === 0) return;
+            state.favorites = [];
+            saveFavorites();
+            updateColor(state.currentHex);
+            renderFavorites();
+            showToast("Lista de favoritos limpa!", "fa-broom");
+        }
+
+        function copyAllFavorites() {
+            if (state.favorites.length === 0) {
+                showToast("Sua lista de favoritos está vazia!", "fa-triangle-exclamation");
+                return;
+            }
+            const text = state.favorites.join(', ');
+            copyToClipboard(text);
+            showToast("Todas as cores da paleta copiadas!", "fa-copy");
+        }
+
+        // === Copy & Toast Helpers ===
+
+        function copyToClipboard(text) {
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(text);
+            } else {
+                const textarea = document.createElement('textarea');
+                textarea.value = text;
+                textarea.style.position = 'fixed';
+                textarea.style.opacity = '0';
+                document.body.appendChild(textarea);
+                textarea.select();
+                try {
+                    document.execCommand('copy');
+                } catch (err) {
+                    console.error("Copy failed", err);
+                }
+                document.body.removeChild(textarea);
+            }
+        }
+
+        function copyFieldValue(inputId, label) {
+            const input = document.getElementById(inputId);
+            if (input && input.value) {
+                copyToClipboard(input.value);
+                showToast(`${label} copiado!`, "fa-check");
+            }
+        }
+
+        let toastTimer;
+        function showToast(message, iconClass = "fa-check") {
+            const toast = document.getElementById('toast');
+            const toastMsg = document.getElementById('toast-message');
+            const toastIcon = document.getElementById('toast-icon');
+
+            toastMsg.textContent = message;
+            toastIcon.className = `fa-solid ${iconClass}`;
+
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            toast.classList.add('translate-y-0', 'opacity-100');
+
+            clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => {
+                toast.classList.remove('translate-y-0', 'opacity-100');
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 2500);
+        }
+
+        function getRandomColor() {
+            const randomHex = '#' + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0').toUpperCase();
+            updateColor(randomHex);
+            showToast("Nova cor aleatória gerada!", "fa-dice");
+        }
+
+        // === Event Listeners Setup ===
+
+        function initEventListeners() {
+            // Native Color Picker
+            nativeColorPicker.addEventListener('input', (e) => {
+                updateColor(e.target.value, 'nativePicker');
+            });
+
+            // Input Text Fields Real-time Sync
+            inputHex.addEventListener('input', (e) => {
+                let val = e.target.value.trim();
+                if (!val.startsWith('#')) val = '#' + val;
+                if (/^#[0-9A-F]{6}$/i.test(val) || /^#[0-9A-F]{3}$/i.test(val)) {
+                    updateColor(val, 'hexInput');
+                }
+            });
+
+            // Category Pills
+            document.querySelectorAll('.cat-pill').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.cat-pill').forEach(b => {
+                        b.classList.remove('bg-indigo-600', 'text-white');
+                        b.classList.add('bg-slate-900/80', 'text-slate-400', 'border', 'border-slate-700');
+                    });
+                    btn.classList.remove('bg-slate-900/80', 'text-slate-400', 'border', 'border-slate-700');
+                    btn.classList.add('bg-indigo-600', 'text-white');
+
+                    state.activeCategory = btn.getAttribute('data-cat');
+                    renderCatalog();
+                });
+            });
+
+            // Catalog Search Input
+            searchInput.addEventListener('input', (e) => {
+                state.searchQuery = e.target.value;
+                renderCatalog();
+            });
+        }
+
+        // Initialize App on DOM ready
+        window.addEventListener('DOMContentLoaded', () => {
+            initEventListeners();
+            updateColor('#3B82F6');
+            renderCatalog();
+            renderFavorites();
+        });
+    </script>
+</body>
+</html>
