@@ -1,2 +1,5 @@
 azul
 amarelo
+Site sobre encontrar cores
+Desenvolvido por IA
+Data de inicio: 22/09/2026
